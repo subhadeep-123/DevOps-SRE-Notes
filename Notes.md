@@ -185,3 +185,25 @@ Many systems don’t expose metrics natively. **Exporters** gather system metric
 Exporters are not suitable for custom applications. For these, Prometheus provides **client libraries** that developers can use to expose custom application metrics.
 
 **Official client libraries are available for most major programming languages.**
+
+---
+
+### Push vs Pull
+
+#### Pull-Based Model
+
+In this model, Prometheus is responsible for scraping metrics from all target systems.
+
+**Benefits:**
+
+1. Easier to detect when a target is **down**; in a push model, it’s unclear if a system is down or intentionally offline.
+2. Prevents overload on the metrics server, as Prometheus controls the scraping frequency.
+3. Maintains a **centralized list of monitored targets**, establishing a clear source of truth.
+
+#### Push-Based Model
+
+In the push model, targets are configured to **send** their metrics to the metrics server.
+
+**Best suited for:**
+
+* **Event-based systems**, where pulling metrics is not feasible due to short job durations or dynamic instances.
