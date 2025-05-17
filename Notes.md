@@ -127,7 +127,61 @@ A formal agreement between a service provider and a user that enforces a specifi
 
 ## Prometheus Fundamentals
 
+### Overview
+
 1. **Prometheus** is an open-source monitoring system for collecting and querying metrics data.
 2. It supports **alerting** based on metric thresholds.
 3. Prometheus **scrapes** metrics from configured targets via an HTTP endpoint.
 4. Scraped data is stored in a **time-series database** and queried using **PromQL** (Prometheus Query Language).
+
+Prometheus is designed to monitor **numeric time-series data**, such as:
+
+* Events
+* System Logs
+* Traces
+
+---
+
+### Prometheus Architecture
+
+The main server consists of three core components:
+
+* **Retrieval**: Scrapes metric data.
+* **Time-Series Database**: Stores the metric data.
+* **HTTP Server**: Handles PromQL queries.
+
+Additional components include:
+
+1. **Exporters**: Lightweight processes that run on the target system to expose metrics. Prometheus pulls this data; targets never push it.
+2. **PushGateway**: Used for short-lived jobs that can’t be scraped in time. Jobs push metrics to PushGateway, and Prometheus pulls from it.
+3. **Service Discovery**: Dynamically provides a list of targets to scrape, avoiding the need for hardcoded target lists.
+4. **AlertManager**: Receives alerts triggered by Prometheus and handles notifications via SMS, email, or SMTP.
+5. **PromQL**: The query language used by visualization tools to fetch data for dashboards.
+
+---
+
+### Collecting Metrics
+
+Prometheus collects metrics by sending HTTP requests to the `/metrics` endpoint of target clients. This path can be configured based on specific setups.
+
+---
+
+### Exporters
+
+Many systems don’t expose metrics natively. **Exporters** gather system metrics and expose them in a format that Prometheus can understand.
+
+**Popular exporters include:**
+
+1. Node Exporter (Linux servers)
+2. Windows Exporter
+3. MySQL Exporter
+4. Apache Exporter
+5. HAProxy Exporter
+
+---
+
+### Client Libraries
+
+Exporters are not suitable for custom applications. For these, Prometheus provides **client libraries** that developers can use to expose custom application metrics.
+
+**Official client libraries are available for most major programming languages.**
