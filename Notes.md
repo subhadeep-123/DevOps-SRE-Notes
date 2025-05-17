@@ -295,3 +295,71 @@ sudo systemctl status prometheus
 ```
 
 This completes the Prometheus installation and configuration process.
+
+---
+
+### Installing Node Exporter
+
+Node Exporter is used to expose hardware and OS metrics from \*nix systems.
+
+#### Step 1: Extract the Node Exporter Archive
+
+```bash
+tar -xvf node_exporter-{version}.linux-amd64.tar.gz
+cd node_exporter-{version}.linux-amd64/
+```
+
+#### Step 2: Create a Dedicated User for Node Exporter
+
+```bash
+sudo useradd --no-create-home --shell /bin/false node_exporter
+```
+
+#### Step 3: Move Binary to System Path
+
+```bash
+sudo mv node_exporter /usr/local/bin
+sudo chown node_exporter: /usr/local/bin/node_exporter
+```
+
+#### Step 4: Create a Systemd Service File
+
+```bash
+sudo nano /etc/systemd/system/node_exporter.service
+```
+
+Paste the following content:
+
+```ini
+[Unit]
+Description=Node Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+Type=simple
+ExecStart=/usr/local/bin/node_exporter
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Step 5: Reload Systemd and Start Node Exporter
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start node_exporter
+sudo systemctl enable node_exporter
+```
+
+#### Step 6: Verify Node Exporter is Running
+
+You can verify by visiting the following URL:
+
+```bash
+curl http://localhost:9100/metrics
+```
+
+This confirms that Node Exporter is running and exposing metrics on port `9100`.
