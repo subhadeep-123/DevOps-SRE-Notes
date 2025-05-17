@@ -207,3 +207,91 @@ In the push model, targets are configured to **send** their metrics to the metri
 **Best suited for:**
 
 * **Event-based systems**, where pulling metrics is not feasible due to short job durations or dynamic instances.
+
+---
+
+### Installing Prometheus
+
+Below are the steps to install Prometheus on a Linux system.
+
+#### Step 1: Extract the Prometheus Archive
+
+```bash
+tar -xvf prometheus-{version}.linux-amd64.tar.gz
+```
+
+#### Step 2: Create a Dedicated User for Prometheus
+
+```bash
+sudo useradd --no-create-home --shell /bin/false prometheus
+```
+
+#### Step 3: Create Necessary Directories
+
+```bash
+sudo mkdir /var/lib/prometheus /etc/prometheus
+```
+
+#### Step 4: Set Ownership
+
+```bash
+sudo chown prometheus: /etc/prometheus /var/lib/prometheus/
+```
+
+#### Step 5: Move Binaries to System Path
+
+```bash
+sudo mv prometheus promtool /usr/local/bin/
+sudo chown prometheus: /usr/local/bin/prometheus /usr/local/bin/promtool
+```
+
+#### Step 6: Move Configuration Files
+
+```bash
+sudo mv consoles console_libraries prometheus.yml /etc/prometheus/
+sudo chown -R prometheus: /etc/prometheus/*
+```
+
+#### Step 7: Create a Systemd Service File
+
+```bash
+sudo nano /etc/systemd/system/prometheus.service
+```
+
+Paste the following content:
+
+```ini
+[Unit]
+Description=Prometheus
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=prometheus
+Group=prometheus
+Type=simple
+ExecStart=/usr/local/bin/prometheus \
+        --config.file=/etc/prometheus/prometheus.yml \
+        --storage.tsdb.path=/var/lib/prometheus/ \
+        --web.console.templates=/etc/prometheus/consoles \
+        --web.console.libraries=/etc/prometheus/console_libraries
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Step 8: Reload Systemd and Start Prometheus
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable prometheus
+sudo systemctl start prometheus
+```
+
+#### Step 9: Check Prometheus Status
+
+```bash
+sudo systemctl status prometheus
+```
+
+This completes the Prometheus installation and configuration process.
