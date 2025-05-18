@@ -587,3 +587,65 @@ It is a utility tool shipped with Prometheus that can be used to:
 ```bash
 promtool check config /etc/prometheus/prometheus.yml
 ```
+
+---
+
+### Monitoring Containers
+
+We can scrape Docker engine metrics directly or use `cAdvisor` to collect container metrics.
+
+#### Collecting Docker Engine Metrics
+
+Update Docker engine config by adding:
+
+```json
+{
+  "metrics-addr": "127.0.0.1:9323",
+  "experimental": true
+}
+```
+
+In Prometheus config:
+
+```yml
+scrape_configs:
+  - job_name: "docker"
+    static_configs:
+      - targets: ["<ip-docker-host>:9323"]
+```
+
+#### Collecting Container Metrics
+
+*cAdvisor* is a lightweight container monitoring tool that exposes per-container resource usage metrics in Prometheus format.
+
+```bash
+docker run \
+  --detach \
+  --name=cadvisor \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:ro \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --publish=8080:8080 \
+  --device=/dev/kmsg \
+  --privileged \
+  gcr.io/cadvisor/cadvisor:latest
+```
+
+This runs cAdvisor at `http://localhost:8080/metrics`
+
+cAdvisor exposes:
+
+1. Container CPU, memory, I/O, filesystem usage
+2. Per-container breakdowns
+3. Metrics like:
+
+   * `container_cpu_usage_seconds_total`
+   * `container_memory_usage_bytes`
+
+| Docker Engine Metrics                 | cAdvisor Metrics                                 |
+| ------------------------------------- | ------------------------------------------------ |
+| How much CPU does `docker` use        | How much CPU/mem does `each` container use       |
+| `Total` number of failed image builds | Number of `processes` running inside a container |
+| Time to process container `actions`   | `Container` uptime                               |
+| No metrics `specific` to a container  | Metrics on a `per container` basis               |
