@@ -403,3 +403,83 @@ scrape_configs:
     [ password: <secret> ]
     [ password_file: <string> ]
 ```
+
+### Authentication & Encryption
+
+#### Authentication
+
+```bash
+sudo openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 \
+  -keyout node_exporter.key -out node_exporter.crt \
+  -subj "/C=IN/ST=WestBengal/L=Kolkata/O=MyOrg/CN=localhost" \
+  -addext "subjectAltName = DNS:localhost"
+
+sudo mkdir /etc/node_exporter
+sudo mv node_exporter.* /etc/node_exporter
+sudo mv /etc/node_exporter/config.yml
+```
+
+```yml
+# /etc/node_exporter/config.yml
+tls_server_config:
+  cert_file: node_exporter.crt
+  key_file: node_exporter.key
+```
+
+```bash
+sudo chown node_exporter: /etc/node_exporter/*
+sudo nano /etc/systemd/system/node_exporter.service
+# Update this line:
+# ExecStart=/usr/local/bin/node_exporter --web.config.file=/etc/node_exporter/config.yml
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl restart node_exporter
+
+curl -k http://localhost:9100/metrics
+
+cd /etc/node_exporter/ && sudo cp node_exporter.crt /etc/prometheus/
+cd /etc/prometheus/ && sudo chown prometheus: node_exporter.crt
+```
+
+Update the `node` scrape\_configs in Prometheus:
+
+```yml
+- job_name: "node"
+  scheme: https
+  tls_config:
+    ca_file: /etc/prometheus/node_exporter.crt
+    insecure_skip_verify: true
+  static_configs:
+    - targets: ["localhost:9100"]
+```
+
+```bash
+sudo systemctl restart prometheus
+```
+
+#### Encryption
+
+```bash
+sudo apt install apache2-utils
+htpasswd -nBC 12 "" | tr -d ':\n'
+sudo nano /etc/node_exporter/config.yml
+```
+
+```yml
+basic_auth_users:
+  prometheus: <--bcrypt-hashed-pwd-->
+```
+
+```bash
+sudo systemctl restart node_exporter
+sudo nano /etc/prometheus/prometheus.yml
+```
+
+```yml
+- job_name: "node"
+  scheme: https
+  basic_auth:
+    username: prometheus
+    password: <--plain-text-pwd-->
+```
