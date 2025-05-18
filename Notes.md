@@ -366,19 +366,19 @@ This confirms that Node Exporter is running and exposing metrics on port `9100`.
 
 ### Prometheus Configuration
 
-- **global**  
+* **global**  
   Default parameters for all config sections.
 
-- **scrape_configs**  
+* **scrape_configs**  
   Define targets and configs for metrics collection.
 
-- **job_name**  
+* **job_name**  
   A collection of instances that need to be scraped.
 
-- **job_configs**  
+* **job_configs**  
   Configs for scrape job. Takes precedence over global_configs.
 
-- **targets**  
+* **targets**  
   Set of targets to scrape.
 
 ```yaml
@@ -568,3 +568,22 @@ Metrics have the following attributes:
 
 * Metric name is just another label.
 * Labels surrounded by double underscores (`__`) are considered internal to Prometheus.
+
+---
+
+### Promtools
+
+It is a utility tool shipped with Prometheus that can be used to:
+
+1. Check and validate configuration
+
+   * Validate `prometheus.yml`
+   * Validate rule files
+2. Validate metrics passed to it are correctly formatted
+3. Perform queries on a Prometheus server
+4. Debug and profile a Prometheus server
+5. Perform unit tests against recording/alerting rules
+
+```bash
+promtool check config /etc/prometheus/prometheus.yml
+```
