@@ -484,6 +484,10 @@ sudo nano /etc/prometheus/prometheus.yml
     password: <--plain-text-pwd-->
 ```
 
+```bash
+sudo systemctl restart prometheus
+```
+
 ---
 
 ### Metrics
