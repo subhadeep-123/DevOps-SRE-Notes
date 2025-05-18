@@ -64,7 +64,7 @@ Each **span** includes:
 
 ---
 
-#### Metrics
+#### Metrics Definition
 
 Metrics represent quantitative data points that reflect the system’s state.
 
@@ -483,3 +483,84 @@ sudo nano /etc/prometheus/prometheus.yml
     username: prometheus
     password: <--plain-text-pwd-->
 ```
+
+---
+
+### Metrics
+
+A Metric consists of 3 components:
+
+```text
+<metric_name>[{<label_1="value_1">, <label_2="value_2">}] <metric_value>
+```
+
+For example:
+
+```text
+node_cpu_seconds_total{cpu="0", mode="idle"} 258277.86
+```
+
+* Labels provide information about which CPU this metric is for and the CPU state (e.g., idle).
+* When Prometheus scrapes a target and retrieves metrics, it also stores the timestamp of the scrape.
+
+The timestamp might look like this: `1668215300`.
+
+Example:
+
+```text
+node_cpu_seconds_total{cpu="0", mode="idle"} 258277.86 Jan 1, 12:51
+```
+
+* Every metric is assigned 2 labels by default: `instance` and `job`.
+
+> ![Metrics](./img/metrics_labels.png)
+
+#### Metric Attributes
+
+Metrics have the following attributes:
+
+* **TYPE**: Specifies the type of metric (counter, gauge, histogram, summary)
+* **HELP**: A description of what the metric represents
+
+##### Counter
+
+* Tracks how many times something happened.
+* The value can only increase.
+* Examples: total requests, total exceptions, total job executions.
+
+##### Gauge
+
+* Represents the current value of something.
+* The value can increase or decrease.
+* Examples: current CPU utilization, available system memory, number of concurrent requests.
+
+##### Histogram
+
+* Measures how long or how big something is.
+* Groups observations into configurable bucket sizes.
+
+##### Summary
+
+* Similar to histogram: tracks how long or how big something is.
+* Measures how many observations fell below certain thresholds.
+* No need to predefine quantiles.
+
+#### Metric Rules
+
+1. Metric names specify a general feature of a system to be measured.
+2. May contain ASCII letters, numbers, underscores, and colons.
+3. Must match regex: `[a-zA-Z:][a-zA-Z0-9_:]*`
+4. Colons are reserved only for recording rules.
+
+#### Labels
+
+1. Labels are key-value pairs associated with a metric.
+2. Allow splitting metrics by specific criteria.
+3. Metrics can have multiple labels.
+4. Label names may include ASCII letters, numbers, and underscores.
+5. Must match regex: `[a-zA-Z0-9_:]*`
+
+#### Internal Labels
+
+* Metric name is just another label.
+* Labels surrounded by double underscores (`__`) are considered internal to Prometheus.
