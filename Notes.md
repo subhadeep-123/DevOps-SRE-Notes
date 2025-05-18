@@ -363,3 +363,43 @@ curl http://localhost:9100/metrics
 ```
 
 This confirms that Node Exporter is running and exposing metrics on port `9100`.
+
+### Prometheus Configuration
+
+- **global**  
+  Default parameters for all config sections.
+
+- **scrape_configs**  
+  Define targets and configs for metrics collection.
+
+- **job_name**  
+  A collection of instances that need to be scraped.
+
+- **job_configs**  
+  Configs for scrape job. Takes precedence over global_configs.
+
+- **targets**  
+  Set of targets to scrape.
+
+```yaml
+scrape_configs:
+  # How frequently to scrape targets from this job.
+  [ scrape_interval: <duration> | default = <global_config.scrape_interval> ]
+  
+  # Per-scrape timeout when scraping this job.
+  [ scrape_timeout: <duration> | default = <global_config.scrape_timeout> ]
+  
+  # The HTTP resource path on which to fetch metrics from targets.
+  [ metrics_path: <path> | default = /metrics ]
+  
+  # Configures the protocol scheme used for requests.
+  [ scheme: <scheme> | default = http ]
+  
+  # Sets the Authorization header on every scrape request with the 
+  # configured username and password.
+  # password and password_file are mutually exclusive.
+  basic_auth:
+    [ username: <string> ]
+    [ password: <secret> ]
+    [ password_file: <string> ]
+```
