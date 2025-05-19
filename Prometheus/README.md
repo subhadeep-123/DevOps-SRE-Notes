@@ -665,19 +665,19 @@ A PromQL expression can evaluate to one of four types
 
 1. **String** - a simple `string` value (currently unused)
 
-   ```
+   ```cmd
    "some random text"  "This is a string"
    ```
 
 2. **Scalar** - a simple numeric `floating point` value.
 
-   ```
+   ```cmd
    54.743  127.43
    ```
 
 3. **Instant Vector** - set of time series containing a single sample for each time series, all sharing the same timestamp. Returns metrics at one single point in time
 
-   ```
+   ```cmd
    node_cpu_seconds_total
    ```
 
@@ -685,7 +685,7 @@ A PromQL expression can evaluate to one of four types
 
 4. **Range Vector** - set of time series containing a range of data points over time for each time series. Returns metrics over the course of a certain time period.
 
-   ```
+   ```cmd
    node_cpu_seconds_total[3m]
    ```
 
@@ -701,7 +701,7 @@ node_filesystem_avail_bytes{fstype="tmpfs", mountpoint="/run"}[2m]
 
 1. **Single Selector**
 
-   ```
+   ```cmd
    node_filesystem_avail_bytes
    ```
 
