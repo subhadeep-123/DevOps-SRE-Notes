@@ -649,3 +649,145 @@ cAdvisor exposes:
 | `Total` number of failed image builds | Number of `processes` running inside a container |
 | Time to process container `actions`   | `Container` uptime                               |
 | No metrics `specific` to a container  | Metrics on a `per container` basis               |
+
+---
+
+## PromQL
+
+* Short for Prometheus Query Language
+* Main way to query metrics within Prometheus
+* Data returned can be visualized in dashboard
+* Used to build alerting rules to notify administrators
+
+### Data Types
+
+A PromQL expression can evaluate to one of four types
+
+1. **String** - a simple `string` value (currently unused)
+
+   ```
+   "some random text"  "This is a string"
+   ```
+
+2. **Scalar** - a simple numeric `floating point` value.
+
+   ```
+   54.743  127.43
+   ```
+
+3. **Instant Vector** - set of time series containing a single sample for each time series, all sharing the same timestamp. Returns metrics at one single point in time
+
+   ```
+   node_cpu_seconds_total
+   ```
+
+   > ![InstantVectors](../img/prometheus/promql_instant_vectors.png)
+
+4. **Range Vector** - set of time series containing a range of data points over time for each time series. Returns metrics over the course of a certain time period.
+
+   ```
+   node_cpu_seconds_total[3m]
+   ```
+
+   > ![RangeVectors](../img/prometheus/promql_range_vectors.png)
+
+Return node\_filesystem\_avail\_bytes metric data for the past 2 minutes:
+
+```cmd
+node_filesystem_avail_bytes{fstype="tmpfs", mountpoint="/run"}[2m]
+```
+
+### Selectors
+
+1. **Single Selector**
+
+   ```
+   node_filesystem_avail_bytes
+   ```
+
+   A query with just the metric name will return all time series with that metric.
+
+   > ![PromQL-Selectors](../img/prometheus/promql_selectors.png)
+
+2. **Multiple Selectors**
+   Multiple selectors can be used by separating them with commas:
+
+   ```cmd
+   node_filesystem_avail_bytes{fstype="tmpfs", mountpoint="/run"}
+   ```
+
+### Matchers
+
+1. `=` Exact match on a label value
+
+   ```cmd
+   node_filesystem_avail_bytes{mountpoint="/run"}
+   ```
+
+   Matches all time series from `/run`.
+
+2. `!=` Negative equality matcher - return time series that don't have the label
+
+   ```cmd
+   node_filesystem_avail_bytes{fstype!="tmpfs"}
+   ```
+
+3. `=~` Regular expression matcher
+
+   ```cmd
+   node_filesystem_avail_bytes{mountpoint=~"/run/.*"}
+   ```
+
+   Matches mountpoints that start with `/run/`.
+
+4. `!~` Negative regular expression matcher
+
+   ```cmd
+   node_filesystem_avail_bytes{mountpoint!~"/boot.*"}
+   ```
+
+### Offset Modifier
+
+When performing a query, it returns the current value of a metric.
+
+> ![OffsetModifierExample](../img/prometheus/promql_offsetr_modifier_example.png)
+
+#### Time Units
+
+> ![TimeUnits](../img/prometheus/promql_time_units.png)
+
+#### Offset Examples
+
+To get historic data, use an `offset` modifier:
+
+```cmd
+node_memory_Active_bytes{} offset 5m
+```
+
+Value 5 minutes ago.
+
+```cmd
+node_memory_Active_bytes{} offset 5d
+```
+
+```cmd
+node_memory_Active_bytes{} offset 1h5m
+```
+
+#### @ Modifier
+
+To go back to a specific point in time:
+
+```cmd
+node_disk_info{} @1747635648
+```
+
+The `offset` modifier can be combined with `@` modifier:
+
+```cmd
+node_disk_info{} @1747635648 offset 5m
+```
+
+#### Offset Modifier and Range Vector Example
+
+> ![Offset-Modifier-RangeVector-Example](../img/prometheus/offset_modifier_range_example.png)
