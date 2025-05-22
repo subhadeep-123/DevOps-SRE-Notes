@@ -862,3 +862,56 @@ Return all vectors greater than 1000 unless they are greater than 30000:
 ```promql
 node_filesystem_avail_bytes > 1000 unless node_filesystem_avail_bytes > 30000
 ```
+
+---
+
+### Vector Matching
+
+For vector matching, samples with exactly the same labels get matched together.
+
+```promql
+node_filesystem_avail_bytes{instance="node1", job="node", mountpoint="/home"} 512
+node_filesystem_size_bytes{instance="node2", job="node", mountpoint="/home"} 1024
+```
+
+The instance labels are different, hence matching is not possible.
+
+When we want to perform operations on two vectors with differing labels, we use:
+
+#### 1. `ignore`
+
+The `ignore` keyword can be used to ignore non-matching labels to ensure there is a match between two vectors.
+
+```promql
+http_errors{code="500"} / ignoring(code) http_requests
+```
+
+#### 2. `on`
+
+While `ignore` ignores labels when matching, the `on` keyword is used to specify the exact list of labels to match on.
+
+```promql
+http_errors{code="500"} / on(method) http_requests
+```
+
+You can use one or more labels to match on or ignore.
+
+#### One-To-One Vector Mapping
+
+In one-to-one vector matching, every element in the vector on the left side of the operator tries to find a single matching element on the right.
+
+#### Many-To-Many Vector Mapping
+
+In many-to-many vector matching, each vector element on one side can match with multiple elements on the other side.
+
+* `group_left` tells PromQL that elements from the right side are matched with multiple elements from the left.
+
+```promql
+http_errors + on(path) group_left http_requests
+```
+
+* `group_right` is the opposite of `group_left`. It tells PromQL that elements from the left side are matched with multiple elements from the right.
+
+```promql
+http_requests + on(path) group_right http_requests
+```
