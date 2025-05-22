@@ -791,3 +791,74 @@ node_disk_info{} @1747635648 offset 5m
 #### Offset Modifier and Range Vector Example
 
 > ![Offset-Modifier-RangeVector-Example](../img/prometheus/offset_modifier_range_example.png)
+
+---
+
+### Operators
+
+#### Arithmetic Operators
+
+Arithmetic operators provide the ability to perform basic math operations:
+
+```note
++, -, *, /, %, ^
+```
+
+The `+` operator will add x amount to the result:
+
+```promql
+node_memory_Active_bytes{instance="node1"} + 10
+```
+
+#### Comparison Operators
+
+```node
+==, !=, >, <, >=, <=
+```
+
+Filter results for anything `greater` than 100:
+
+```promql
+node_network_flags > 100
+node_network_receive_packets_total >= 220
+node_filesystem_avail_bytes < bool 1000
+```
+
+#### Binary Operator
+
+When a PromQL expression has multiple binary operators, they follow an order of precedence, from highest to lowest:
+
+```note
+1. ^
+2. *, /, %, atan2
+3. +, -
+4. ==, !=, <=, <, >=, >
+5. and, unless
+6. or
+```
+
+Operators on the same precedence level are left-associative.
+For example, `2 * 3 % 2` is equivalent to `(2 * 3) % 2`.
+However `^` is right-associative, so `2 ^ 3 ^ 2` is equivalent to `2 ^ (3 ^ 2)`.
+
+#### Logical Operator
+
+PromQL has 3 logical operators:
+
+1. `or`
+2. `and`
+3. `unless`
+
+```promql
+node_filesystem_avail_bytes > 1000 and node_filesystem_avail_bytes < 3000
+node_filesystem_avail_bytes < 500 or node_filesystem_avail_bytes > 70000
+```
+
+The `unless` operator results in a vector consisting of elements on the left side for which there are no elements on the right side.
+“Give me A, but exclude anything also present in B.”
+
+Return all vectors greater than 1000 unless they are greater than 30000:
+
+```promql
+node_filesystem_avail_bytes > 1000 unless node_filesystem_avail_bytes > 30000
+```
