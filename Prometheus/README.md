@@ -1242,3 +1242,157 @@ groups:
 ```
 
 ---
+
+### Prometheus HTTP API Notes
+
+Prometheus provides a powerful HTTP API for querying time series data, checking the status of the server, managing targets, and more. This API can be accessed via HTTP endpoints.
+
+---
+
+#### 🔹 Base URL
+
+```
+http://<prometheus-host>:9090/api/v1/
+```
+
+All API endpoints are under this base URL.
+
+---
+
+#### 🔹 Query Endpoints
+
+##### 1. **Instant Query**
+
+Endpoint: `/query`
+
+Evaluates an expression at a single point in time.
+
+**Example:**
+
+```http
+GET /api/v1/query?query=node_cpu_seconds_total{job="node",%20mode="iowait"}
+```
+
+---
+
+##### 2. **Range Query**
+
+Endpoint: `/query_range`
+
+Evaluates an expression over a range of time.
+
+**Example:**
+
+```http
+GET /api/v1/query_range?query=rate(http_requests_total[5m])&start=1633000000&end=1633003600&step=15
+```
+
+---
+
+#### 🔹 Series and Label Endpoints
+
+##### 3. **Label Values**
+
+Endpoint: `/label/<label_name>/values`
+
+Lists all possible values for a given label.
+
+**Example:**
+
+```http
+GET /api/v1/label/job/values
+```
+
+##### 4. **Series Match**
+
+Endpoint: `/series`
+
+Returns time series matching a set of label matchers.
+
+**Example:**
+
+```http
+GET /api/v1/series?match[]=http_requests_total{job="api"}&start=1633000000&end=1633003600
+```
+
+---
+
+#### 🔹 Metadata Endpoints
+
+##### 5. **Targets**
+
+Endpoint: `/targets`
+
+Shows current targets and their status.
+
+##### 6. **Configuration**
+
+Endpoint: `/status/config`
+
+Displays the active Prometheus configuration.
+
+##### 7. **Flags**
+
+Endpoint: `/status/flags`
+
+Shows runtime configuration values.
+
+---
+
+#### 🔹 Alerts and Rules
+
+##### 8. **Alerts**
+
+Endpoint: `/alerts`
+
+Returns a list of active alerts.
+
+##### 9. **Rules**
+
+Endpoint: `/rules`
+
+Lists all alerting and recording rules.
+
+---
+
+#### 🔹 Targets & Service Discovery
+
+##### 10. **Target Metadata**
+
+Endpoint: `/targets/metadata`
+
+Shows metadata about targets scraped.
+
+---
+
+#### 🔹 TSDB Endpoints
+
+##### 11. **TSDB Status**
+
+Endpoint: `/status/tsdb`
+
+Returns information about the TSDB database status.
+
+##### 12. **Delete Series (Dangerous)**
+
+Endpoint: `/admin/tsdb/delete_series`
+
+Delete series from TSDB (use with caution).
+
+**Example:**
+
+```http
+POST /api/v1/admin/tsdb/delete_series?match[]=up{job="test"}
+```
+
+---
+
+#### 🛡️ Notes
+
+- All endpoints return JSON responses.
+- Use Prometheus’s `/api/v1/status/` for metadata and debug.
+- You can interact with the API using `curl`, `http`, or in browser if GET.
+
+---
+
+✅ **Use the HTTP API** for custom dashboards, automation, or integration with external systems.
