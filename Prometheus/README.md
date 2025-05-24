@@ -963,19 +963,19 @@ PromQL has several different function for a variety of use cases including `sort
 
 #### Math Functions
 
-- `ceil()` rounds up to the closest integer:
+* `ceil()` rounds up to the closest integer:
 
 ```promql
 ceil(node_cpu_seconds_total)
 ```
 
-- `floor()` rounds down to the closest integer:
+* `floor()` rounds down to the closest integer:
 
 ```promql
 floor(node_cpu_seconds_total)
 ```
 
-- `abs()` returns absolute value:
+* `abs()` returns absolute value:
 
 ```promql
 abs(node_cpu_seconds_total)
@@ -983,7 +983,7 @@ abs(node_cpu_seconds_total)
 
 #### Date & Time Functions
 
-- `time()` returns current time:
+* `time()` returns current time:
 
 ```promql
 $ time()
@@ -994,14 +994,14 @@ $ time()
 
 #### Changing type
 
-- `vector()` takes a scalar and converts it into an instant vector:
+* `vector()` takes a scalar and converts it into an instant vector:
 
 ```promql
 $ vector(4)
 > {} 4
 ```
 
-- `scalar()` converts an instant vector with one element into a scalar:
+* `scalar()` converts an instant vector with one element into a scalar:
 
 ```promql
 $ process_start_time_seconds
@@ -1047,11 +1047,13 @@ Subquery syntax:
 For queries requiring a range vector instead of an instant vector:
 
 Incorrect:
+
 ```promql
 max_over_time(rate(http_requests_total[1m]))
 ```
 
 Correct:
+
 ```promql
 max_over_time(rate(http_requests_total[1m])) [5m:30s]
 ```
@@ -1071,9 +1073,9 @@ A **Histogram** measures observations and counts them in configurable **buckets*
 
 #### Components:
 
-- `{metric}_bucket{le="..."}`: cumulative count for each bucket.
-- `{metric}_count`: total number of observations.
-- `{metric}_sum`: total sum of observed values.
+* `{metric}_bucket{le="..."}`: cumulative count for each bucket.
+* `{metric}_count`: total number of observations.
+* `{metric}_sum`: total sum of observed values.
 
 #### Quantiles
 
@@ -1097,13 +1099,13 @@ http_request_duration_seconds_sum
 
 #### 🔍 Querying:
 
-- Rate of requests < 1s:
+* Rate of requests < 1s:
 
 ```promql
 rate(http_request_duration_seconds_bucket{le="1"}[5m])
 ```
 
-- 95th percentile quantile:
+* 95th percentile quantile:
 
 ```promql
 histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
@@ -1117,9 +1119,9 @@ A **Summary** provides quantiles, count, and sum. Quantiles are calculated **cli
 
 #### Components:
 
-- `{metric}{quantile="0.5"}` – precomputed quantile values.
-- `{metric}_count` – total observations.
-- `{metric}_sum` – sum of all observations.
+* `{metric}{quantile="0.5"}` – precomputed quantile values.
+* `{metric}_count` – total observations.
+* `{metric}_sum` – sum of all observations.
 
 #### Example Metric:
 
@@ -1131,13 +1133,13 @@ http_request_duration_seconds_sum
 
 #### 🔍 Querying:
 
-- 99th percentile (client-side):
+* 99th percentile (client-side):
 
 ```promql
 http_request_duration_seconds{quantile="0.99"}
 ```
 
-- Rate of count:
+* Rate of count:
 
 ```promql
 rate(http_request_duration_seconds_count[5m])
