@@ -1396,3 +1396,42 @@ POST /api/v1/admin/tsdb/delete_series?match[]=up{job="test"}
 ---
 
 ✅ **Use the HTTP API** for custom dashboards, automation, or integration with external systems.
+
+---
+
+---
+
+## 📌 Application Instrumentation Best Practices
+
+Metric naming convention:
+
+```
+library_name_unit_suffix
+```
+
+- Use `snake_case` lowercase with words separated by underscores.
+- The first word of the metric should be the application/library the metric is used for.
+- The name portion should clearly describe what the metric is for.
+- Always include the unit in the metric name (e.g., `seconds`, `bytes`, `meters`).
+- Use unprefixed base units (e.g., `seconds` instead of `microseconds`, `bytes` instead of `kilobytes`).
+
+### ✅ Proper Metric Naming Examples
+
+| Proper Metric Names         | Incorrect Metric Names           |
+|----------------------------|----------------------------------|
+| `process_cpu_seconds`      | `container_docker_restart`      |
+| `http_requests_total`      | `http_requests_sum`             |
+| `redis_connection_errors`  | `nginx_disk_free_kilobytes`     |
+| `node_disk_read_bytes_total` | `dotnet_queue_waiting_time`   |
+
+---
+
+## 🔍 What to Instrument
+
+Different types of services to instrument:
+
+1. **Online-serving systems**
+2. **Offline processing**
+3. **Batch Jobs**
+
+Focus on metrics that are relevant to the behavior and performance of these systems.
