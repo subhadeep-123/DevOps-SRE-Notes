@@ -915,3 +915,249 @@ http_errors + on(path) group_left http_requests
 ```promql
 http_requests + on(path) group_right http_requests
 ```
+
+---
+
+### Aggregation Operators
+
+It takes an instance vector and `aggregate` its elements, resulting in a new instance vector with fewer elements.
+
+> ![Aggregation Operators](../img/prometheus/promql_aggregation_operators.png)
+
+#### Example of Few Operations:
+
+```promql
+sum(http_requests)
+max(http_requests)
+avg(http_requests)
+```
+
+#### by clause
+
+The `by` clause allows you to choose which labels to aggregate along:
+
+```promql
+sum by(path) (http_requests)
+sum by(instance) (http_requests)
+sum by(instance, method) (http_requests)
+```
+
+#### without operator
+
+The `without` keyword does the opposite of `by` and tells the query which labels not to include in the aggregation.
+
+Aggregate on every label except `path` (equivalent to `by(instance, method)`):
+
+```promql
+$ http_requests
+http_requests{method="get", path="/auth", instance="node1"}
+
+$ sum without(path) (http_requests)
+```
+
+---
+
+### Functions
+
+PromQL has several different function for a variety of use cases including `sorting`, `math`, `label transformation`, `metric manipulation`, and more.
+
+#### Math Functions
+
+- `ceil()` rounds up to the closest integer:
+
+```promql
+ceil(node_cpu_seconds_total)
+```
+
+- `floor()` rounds down to the closest integer:
+
+```promql
+floor(node_cpu_seconds_total)
+```
+
+- `abs()` returns absolute value:
+
+```promql
+abs(node_cpu_seconds_total)
+```
+
+#### Date & Time Functions
+
+- `time()` returns current time:
+
+```promql
+$ time()
+> 1663872361.957
+```
+
+> ![Date & Time Functions](../img/prometheus/promql_date_time_chart.png)
+
+#### Changing type
+
+- `vector()` takes a scalar and converts it into an instant vector:
+
+```promql
+$ vector(4)
+> {} 4
+```
+
+- `scalar()` converts an instant vector with one element into a scalar:
+
+```promql
+$ process_start_time_seconds
+> process_start_time_seconds{instance="node1"} 1662763800
+
+$ scalar(process_start_time_seconds)
+> scalar 1662763800
+```
+
+#### Sorting Functions
+
+Elements can be sorted using `sort()` and `sort_desc()`.
+
+#### rate & irate
+
+The `rate()` and `irate()` functions provide the per-second average rate of change.
+
+| rate                                       | irate                                       |
+|-------------------------------------------|---------------------------------------------|
+| Looks at the first and last data points   | Looks at the last two data points          |
+| Effectively an average rate over the range| Instant rate                                |
+| Best for slow-moving counters, alert rules| Best for graphing volatile counters         |
+
+**Note:**
+
+1. Ensure at least 4 samples within a time range (e.g., 15s scrape + 60s window).
+2. Always apply `rate()` before aggregation:
+
+```promql
+sum without(code, handler)(rate(http_requests_total[24h]))
+```
+
+---
+
+### Subqueries
+
+Subquery syntax:
+
+```promql
+<instant_query> [<range>:<resolution>] [offset <duration>]
+```
+
+For queries requiring a range vector instead of an instant vector:
+
+Incorrect:
+```promql
+max_over_time(rate(http_requests_total[1m]))
+```
+
+Correct:
+```promql
+max_over_time(rate(http_requests_total[1m])) [5m:30s]
+```
+Returns the maximum request rate over the last 5 minutes, sampled every 30s, with a sample range of 1 minute.
+
+---
+
+### Histogram vs Summary
+
+In Prometheus, both Histogram and Summary observe the distribution of events (e.g., durations, sizes), but differ in collection and querying methods.
+
+---
+
+### 🔹 Histogram
+
+A **Histogram** measures observations and counts them in configurable **buckets**.
+
+#### Components:
+
+- `{metric}_bucket{le="..."}`: cumulative count for each bucket.
+- `{metric}_count`: total number of observations.
+- `{metric}_sum`: total sum of observed values.
+
+#### Quantiles
+
+Quantiles represent percentiles. For example, the 90% quantile shows the value under which 90% of the data falls.
+
+Used to measure SLOs (e.g., 95% of requests < 0.5s):
+
+```promql
+histogram_quantile(0.95, request_latency_seconds_bucket)
+```
+
+If the result > 0.5s, the SLO was missed.
+
+#### Example Metric:
+
+```promql
+http_request_duration_seconds_bucket{le="0.1"}
+http_request_duration_seconds_count
+http_request_duration_seconds_sum
+```
+
+#### 🔍 Querying:
+
+- Rate of requests < 1s:
+
+```promql
+rate(http_request_duration_seconds_bucket{le="1"}[5m])
+```
+
+- 95th percentile quantile:
+
+```promql
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+```
+
+---
+
+### 🔹 Summary
+
+A **Summary** provides quantiles, count, and sum. Quantiles are calculated **client-side** and cannot be aggregated across instances.
+
+#### Components:
+
+- `{metric}{quantile="0.5"}` – precomputed quantile values.
+- `{metric}_count` – total observations.
+- `{metric}_sum` – sum of all observations.
+
+#### Example Metric:
+
+```promql
+http_request_duration_seconds{quantile="0.5"}
+http_request_duration_seconds_count
+http_request_duration_seconds_sum
+```
+
+#### 🔍 Querying:
+
+- 99th percentile (client-side):
+
+```promql
+http_request_duration_seconds{quantile="0.99"}
+```
+
+- Rate of count:
+
+```promql
+rate(http_request_duration_seconds_count[5m])
+```
+
+---
+
+#### ⚖️ Histogram vs Summary
+
+| Feature            | Histogram                         | Summary                            |
+|--------------------|------------------------------------|-------------------------------------|
+| Quantiles          | Calculated on query time          | Precomputed by client              |
+| Aggregation        | Yes (server-side)                 | No (cannot aggregate across labels)|
+| Buckets/Config     | Needs bucket definition           | Needs quantile objectives          |
+| Use Case           | Aggregation, latency SLAs         | Local latency distribution         |
+
+---
+
+✅ **Use Histogram** if you need accurate aggregations and SLAs across services.  
+⚠️ **Use Summary** for detailed local stats where aggregation isn't needed.
+
+---
+
