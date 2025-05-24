@@ -1161,3 +1161,82 @@ rate(http_request_duration_seconds_count[5m])
 
 ---
 
+### Recording Rules
+
+Recording rules are used to precompute frequently needed or computationally expensive expressions and save their result as a new set of time series.
+
+#### Purpose:
+
+- Reduce query load and latency.
+- Provide historical data for queries that are expensive to compute on the fly.
+- Improve dashboard performance and alert evaluation.
+
+#### Syntax:
+
+Recording rules are defined in YAML files and look like this:
+
+```yaml
+record: job:http_inprogress_requests:sum
+expr: sum by (job) (http_inprogress_requests)
+```
+
+#### Example:
+
+If you frequently query the total HTTP requests per job:
+
+```promql
+sum by(job) (http_requests_total)
+```
+
+You can create a recording rule:
+
+```yaml
+record: job:http_requests_total:sum
+expr: sum by(job) (http_requests_total)
+```
+
+Then query using the new metric name:
+
+```promql
+job:http_requests_total:sum
+```
+
+#### File Configuration:
+
+Typically included under the `rule_files` section in `prometheus.yml`:
+
+```yaml
+rule_files:
+  - "rules/recording_rules.yml"
+```
+
+#### When to Use:
+
+- For metrics used repeatedly in dashboards or alerts.
+- For aggregations over large datasets.
+- When reducing query computation time is necessary.
+
+#### Tips:
+
+- Use meaningful naming conventions, e.g., `job:metric_name:operation`
+- Be mindful of Prometheus storage; recording rules can significantly increase the number of stored time series if misused.
+
+#### Example
+
+```yml
+# rule.yml
+groups:
+  - name: example1
+    interval: 15s
+    rules:
+      - record: node_memory_memFree_percent
+        expr: 100 - (100 * node_memory_MemFree_bytes/node_memory_MemTotal_bytes)
+
+      - record: node_filesystem_free_percent
+        expr: 100 * node_filesystem_free_bytes / node_filesystem_size_bytes
+
+      - record: node_filesystem_free_percent_avg
+        expr: avg by(instance)(node_filesystem_free_percent)
+```
+
+---
