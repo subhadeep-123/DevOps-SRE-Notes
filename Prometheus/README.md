@@ -1454,3 +1454,101 @@ Focus on metrics that are relevant to the behavior and performance of these syst
 | redis\_connection\_errors | nginx\_disk\_free\_kilobytes |
 
 ---
+
+---
+
+## Service Discovery
+
+Service Discovery allows Prometheus to populate a list of endpoints to scrape that can get dynamically updated as new endpoints get created and destroyed.
+
+### File Service Discovery
+
+A list of jobs/targets can be imported from a file. This allows you to integrate with service discovery systems Prometheus doesn't support out of the box. Supports `json` and `yaml` files.
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: file-example
+    file_sd_configs:
+      - files:
+        - 'file-sd.json'
+        - '*.json'
+```
+
+```json
+# file-sd.json
+[
+  {
+    "targets": [ "node1:9100", "node2:9100" ],
+    "labels": {
+      "team": "dev",
+      "job": "node"
+    }
+  },
+  {
+    "targets": [ "localhost:9090" ],
+    "labels": {
+      "team": "monitoring",
+      "job": "prometheus"
+    }
+  },
+  {
+    "targets": [ "db1:9090" ],
+    "labels": {
+      "team": "db",
+      "job": "database"
+    }
+  }
+]
+```
+
+### EC2 Service Discovery
+
+Cloud infrastructure is very dynamic, especially when autoscaling is enabled.
+
+EC2 Service Discovery allows Prometheus to dynamically discover and scrape EC2 instances.
+
+Credentials should be setup with an IAM user with the `AmazonEC2ReadOnlyAccess` policy or an EC2 IAM role with `ec2:DescribeInstances` permission.
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: 'ec2-instances'
+    ec2_sd_configs:
+      - region: us-east-1                # Change to your AWS region
+        access_key: YOUR_AWS_ACCESS_KEY # Optional if using IAM roles
+        secret_key: YOUR_AWS_SECRET_KEY # Optional if using IAM roles
+        port: 9100                       # Port where your target exposes metrics (e.g., node_exporter)
+        filters:
+          - name: "tag:Environment"
+            values: ["production"]
+    relabel_configs:
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: __address__
+        replacement: $1:9100
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance_name
+      - source_labels: [__meta_ec2_availability_zone]
+        target_label: availability_zone
+      - source_labels: [__meta_ec2_tag_Environment]
+        target_label: environment
+```
+
+### IAM Policy for EC2 Discovery
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+---
