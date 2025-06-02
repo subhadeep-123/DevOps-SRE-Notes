@@ -1239,6 +1239,10 @@ groups:
 
       - record: node_filesystem_free_percent_avg
         expr: avg by(instance)(node_filesystem_free_percent)
+  
+  - name: docker # all the rules for job="docker"
+    interval: 15s
+    rules:
 ```
 
 ---
