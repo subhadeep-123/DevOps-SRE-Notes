@@ -1428,8 +1428,6 @@ library_name_unit_suffix
 | `redis_connection_errors`  | `nginx_disk_free_kilobytes`     |
 | `node_disk_read_bytes_total` | `dotnet_queue_waiting_time`   |
 
----
-
 ## 🔍 What to Instrument
 
 Different types of services to instrument:
@@ -1439,3 +1437,20 @@ Different types of services to instrument:
 3. **Batch Jobs**
 
 Focus on metrics that are relevant to the behavior and performance of these systems.
+
+### Instrumentation Best Practices
+
+1. Metrics should follow `snake_case` - lowercase with words separated by `_`.
+2. The first word of the metric should be the application/library the metric is used for.
+3. The `name` portion of the metric name should provide a description of what the metric is used for.
+4. Make sure to use unprefixed base units like `seconds`, `bytes`, and `meters`. Avoid using microseconds or kilobytes.
+
+### Naming Metrics
+
+| Proper Metric Names       | Incorrect Metric Names       |
+| ------------------------- | ---------------------------- |
+| process\_cpu\_seconds     | container\_docker\_restarts  |
+| http\_requests\_total     | http\_requests\_sum          |
+| redis\_connection\_errors | nginx\_disk\_free\_kilobytes |
+
+---
