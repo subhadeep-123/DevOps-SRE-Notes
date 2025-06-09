@@ -1552,3 +1552,124 @@ scrape_configs:
 ```
 
 ---
+
+
+### Relabeling in Prometheus Service Discovery
+
+Relabeling allows transforming label values dynamically as targets are discovered. It is a powerful mechanism for filtering, modifying, or enriching metadata about targets before Prometheus starts scraping them.
+
+---
+
+#### Why Use Relabeling?
+
+* Drop unwanted targets
+* Change the target address
+* Enrich targets with extra labels
+* Normalize label names and values
+* Copy metadata from service discovery into labels
+
+Relabeling is especially important when using dynamic service discovery methods like EC2, Kubernetes, or Consul.
+
+---
+
+#### Basic Structure
+
+```yaml
+relabel_configs:
+  - source_labels: [<label1>, <label2>, ...]
+    separator: ;                   # Optional, default is ";"
+    regex: <regex>                 # Regular expression to match
+    target_label: <label_name>     # Label to set
+    replacement: <replacement>     # Replacement value
+    action: <action>               # One of: replace, keep, drop, hashmod, labelmap, labeldrop, labelkeep
+```
+
+---
+
+#### Common Relabeling Actions
+
+##### 1. **replace** (Default)
+
+Replaces or sets a label value.
+
+```yaml
+- source_labels: [__meta_ec2_private_ip]
+  target_label: __address__
+  replacement: $1:9100
+```
+
+##### 2. **drop**
+
+Drops a target if the regex matches.
+
+```yaml
+- source_labels: [__meta_ec2_tag_Environment]
+  regex: staging
+  action: drop
+```
+
+##### 3. **keep**
+
+Keeps the target only if the regex matches.
+
+```yaml
+- source_labels: [__meta_ec2_tag_Environment]
+  regex: production
+  action: keep
+```
+
+##### 4. **labelmap**
+
+Copies labels that match a regex to new labels.
+
+```yaml
+- regex: __meta_ec2_tag_(.*)
+  action: labelmap
+```
+
+##### 5. **labeldrop / labelkeep**
+
+Drops or keeps only specific labels.
+
+```yaml
+- regex: __meta_ec2_tag_.*
+  action: labeldrop
+```
+
+---
+
+#### Real-World Example (EC2)
+
+```yaml
+scrape_configs:
+  - job_name: 'ec2'
+    ec2_sd_configs:
+      - region: us-east-1
+        port: 9100
+    relabel_configs:
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: __address__
+        replacement: $1:9100
+
+      - source_labels: [__meta_ec2_tag_Name]
+        target_label: instance_name
+
+      - source_labels: [__meta_ec2_tag_Environment]
+        regex: production
+        action: keep
+
+      - regex: __meta_ec2_tag_.*
+        action: labeldrop
+```
+
+---
+
+#### Tips
+
+* `__address__` is a special internal label that Prometheus uses to determine where to scrape.
+* Use `__meta_*` labels from your discovery mechanism to enrich or filter targets.
+* Apply relabeling to both `scrape_configs` and `metric_relabel_configs` for more control.
+
+---
+
+You can continue with `metric_relabel_configs` next for filtering series after scraping or look into discovery-specific labels for Kubernetes and Consul.
