@@ -1672,4 +1672,125 @@ scrape_configs:
 
 ---
 
-You can continue with `metric_relabel_configs` next for filtering series after scraping or look into discovery-specific labels for Kubernetes and Consul.
+## Prometheus PushGateway Documentation
+
+The PushGateway is an intermediary service that allows ephemeral or batch jobs to push their metrics to Prometheus. This is useful when jobs are short-lived and cannot be scraped directly by Prometheus.
+
+---
+
+### Why Use PushGateway?
+
+* Prometheus pull model doesn't work well for batch or short-lived jobs.
+* PushGateway acts as a metrics buffer.
+* Prometheus scrapes the PushGateway to retrieve pushed metrics.
+
+---
+
+### Installation
+
+#### 1. **Download and Install**
+
+```bash
+wget https://github.com/prometheus/pushgateway/releases/latest/download/pushgateway-<version>.linux-amd64.tar.gz
+
+# Extract and move
+tar xvf pushgateway-*.tar.gz
+sudo mv pushgateway-*/pushgateway /usr/local/bin/
+```
+
+#### 2. **Create a Systemd Service**
+
+```ini
+# /etc/systemd/system/pushgateway.service
+[Unit]
+Description=Prometheus PushGateway
+After=network.target
+
+[Service]
+User=prometheus
+ExecStart=/usr/local/bin/pushgateway
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# Reload systemd and start the service
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable --now pushgateway
+```
+
+* Access PushGateway at `http://<host>:9091`
+
+---
+
+### Pushing Metrics
+
+Metrics are pushed to the PushGateway via HTTP PUT/POST requests.
+
+Example:
+
+```bash
+cat <<EOF | curl --data-binary @- http://localhost:9091/metrics/job/backup
+# TYPE some_metric counter
+some_metric{label1="value1"} 42
+EOF
+```
+
+* `job` is a required label in the URL.
+* Additional labels can be added to the URL path (see Grouping).
+
+---
+
+### Grouping Keys
+
+Grouping keys are labels used to separate metrics by job and instance.
+
+Example with additional grouping:
+
+```bash
+cat <<EOF | curl --data-binary @- http://localhost:9091/metrics/job/myjob/instance/myinstance
+# TYPE custom_jobs_processed_total counter
+custom_jobs_processed_total 7
+EOF
+```
+
+Prometheus scrapes the PushGateway endpoint, and labels are automatically applied based on the URL.
+
+---
+
+### Example Using Python Client
+
+Install the Prometheus client:
+
+```bash
+pip install prometheus_client
+```
+
+Sample script:
+
+```python
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+
+registry = CollectorRegistry()
+g = Gauge('batch_job_duration_seconds', 'Duration of batch job', registry=registry)
+g.set(5.7)
+
+push_to_gateway('localhost:9091', job='batchA', registry=registry)
+```
+
+This pushes a gauge metric `batch_job_duration_seconds` with value `5.7` for job `batchA`.
+
+---
+
+### Best Practices
+
+* Avoid pushing metrics from continuously running services; use pull model instead.
+* PushGateway does not manage metric lifecycle — explicitly delete old metrics if needed.
+* Use `delete` endpoint if required: `curl -X DELETE http://localhost:9091/metrics/job/<job>`
+
+---
+
+Let me know if you want examples using shell scripts, Java, or Go clients.
