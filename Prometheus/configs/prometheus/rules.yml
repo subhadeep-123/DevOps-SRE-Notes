@@ -1,0 +1,33 @@
+groups:
+  - name: RulesDemo
+    interval: 15s
+    rules:
+      - record: node_memory_memFree_percent
+        expr: 100 - (100 * node_memory_MemFree_bytes/node_memory_MemTotal_bytes)
+
+      - alert: LowMemory
+        expr: node_memory_memFree_percent < 20
+
+      - record: node_filesystem_free_percent
+        expr: 100 * node_filesystem_free_bytes / node_filesystem_size_bytes
+
+      - record: node_filesystem_free_percent_avg
+        expr: avg by(instance)(node_filesystem_free_percent)
+
+  - name: node
+    rules:
+      - alert: node down
+        expr: up{job="node"} == 0
+        for: 5m
+        labels:
+          severity: warning
+
+      - alert: Multiple Nodes down
+        expr: avg without(instance) (up{job="nodes"}) <= 0.5
+        labels:
+          severity: critical
+
+      - alert: LowDiskSpace
+        expr: 100 * node_filesystem_free_bytes{job="node"} / node_filesystem_size_bytes{job="node"} < 70
+        annotations:
+          description: "filesystem {{.Labels.device}} on {{.Labels.instance}} is low on space, current available space is {{.Value}}"

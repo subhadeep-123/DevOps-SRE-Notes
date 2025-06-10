@@ -1,0 +1,54 @@
+# alertmanager.yml
+global:
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'alertmanager@prometheus-server.com'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 2m
+  repeat_interval: 1h
+  receiver: 'general-email'
+  routes:
+    - match:
+        team: global-infra
+      receiver: global-infra-email
+    - match:
+        team: internal-infra
+      receiver: internal-infra-email
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://127.0.0.1:5001/'
+  - name: global-infra-email
+    email_configs:
+      - to: "root@prometheus-server.com"
+        require_tls: false
+  - name: internal-infra-email
+    email_configs:
+      - to: "admin@prometheus-server.com"
+        require_tls: false
+  - name: general-email
+    email_configs:
+      - to: "admin@prometheus-server.com"
+        require_tls: false
+
+
+# rules.yml
+groups:
+  - name: node
+    rules:
+      - alert: NodeDown
+        expr: up{job="nodes"} == 0
+        for: 10s
+        labels:
+          severity: critical
+          team: global-infra
+      - alert: HostOutOfMemory
+        expr: node_memory_MemAvailable_bytes{job="nodes"} / node_memory_MemTotal_bytes{job="nodes"} * 100 < 10
+        labels:
+          severity: warning
+          team: internal-infra
+        annotations:
+          message: "node {{.Labels.instance}} is seeing high memory usage, currently available memory: {{.Value}}%"
