@@ -1793,4 +1793,263 @@ This pushes a gauge metric `batch_job_duration_seconds` with value `5.7` for job
 
 ---
 
-Let me know if you want examples using shell scripts, Java, or Go clients.
+## Prometheus Alerting & Alertmanager
+
+Prometheus supports generating alerts based on time-series data. Alerts are configured in `alerting rules` and sent to the **Alertmanager** service, which handles routing, grouping, inhibition, and notification delivery.
+
+---
+
+### Why Use Alerting?
+
+* Detect issues proactively (e.g., high CPU usage, service down)
+* Get notified via email, Slack, PagerDuty, etc.
+* Integrate monitoring into operational workflows
+* Track SLO/SLA violations in real time
+
+---
+
+### Alerting Rules
+
+Alerting rules evaluate expressions and fire alerts when conditions are met for a configured duration.
+
+#### Configuration
+
+```yaml
+# prometheus.yml
+rule_files:
+  - alerts.yml
+```
+
+#### Example Alert Rule
+
+```yaml
+# alerts.yml
+groups:
+  - name: example-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          team: devops
+        annotations:
+          summary: "High CPU usage on instance {{ $labels.instance }}"
+          description: "CPU usage is above 80% for more than 2 minutes. Current value: {{ $value }}"
+```
+
+* `expr`: PromQL condition
+* `for`: Duration threshold
+* `labels`: Metadata (e.g., severity, team)
+* `annotations`: Human-readable messages for UI and notifications
+
+---
+
+### Alertmanager Overview
+
+The **Alertmanager** receives alerts from Prometheus and handles:
+
+* Grouping related alerts
+* Deduplication of repeated alerts
+* Inhibition (silencing lower-priority alerts based on others)
+* Routing to receivers (email, Slack, Webhooks, PagerDuty)
+* Silencing (manually mute known issues)
+
+---
+
+### Alertmanager Installation (Systemd)
+
+```bash
+wget https://github.com/prometheus/alertmanager/releases/latest/download/alertmanager-<version>.linux-amd64.tar.gz
+tar xvf alertmanager-*.tar.gz
+sudo mv alertmanager-*/alertmanager /usr/local/bin/
+sudo mv alertmanager-*/amtool /usr/local/bin/
+```
+
+```ini
+# /etc/systemd/system/alertmanager.service
+[Unit]
+Description=Prometheus Alertmanager
+After=network.target
+
+[Service]
+User=prometheus
+ExecStart=/usr/local/bin/alertmanager \
+  --config.file=/etc/alertmanager/config.yml \
+  --storage.path=/var/lib/alertmanager
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo mkdir -p /etc/alertmanager /var/lib/alertmanager
+sudo chown -R prometheus:prometheus /etc/alertmanager /var/lib/alertmanager
+sudo systemctl daemon-reload
+sudo systemctl enable --now alertmanager
+```
+
+---
+
+### Restarting Alertmanager
+
+To apply changes after updating the config:
+
+```bash
+sudo systemctl restart alertmanager
+sudo systemctl status alertmanager
+journalctl -u alertmanager -f
+```
+
+Validate configuration before restarting:
+
+```bash
+amtool check-config /etc/alertmanager/config.yml
+```
+
+---
+
+### Sample Alertmanager Configuration
+
+```yaml
+# /etc/alertmanager/config.yml
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.example.com:587'
+  smtp_from: 'alerts@example.com'
+  smtp_auth_username: 'alerts@example.com'
+  smtp_auth_password: 'yourpassword'
+
+route:
+  group_by: ['alertname', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  receiver: default
+  routes:
+    - match:
+        team: database
+      receiver: 'slack-critical'
+      routes:
+        - match:
+            severity: (page|email)
+          receiver: email-alert
+
+    - match:
+        team: devops
+      receiver: 'email-alert'
+
+receivers:
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:5001/alert'
+
+  - name: 'email-alert'
+    email_configs:
+      - to: 'admin@example.com'
+
+  - name: 'slack-critical'
+    slack_configs:
+      - send_resolved: true
+        channel: '#alerts'
+        username: 'alertmanager'
+        api_url: 'https://hooks.slack.com/services/XXX/YYY/ZZZ'
+        title: '{{ .CommonAnnotations.summary }}'
+        text: '{{ .CommonAnnotations.description }}'
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+```
+
+---
+
+### Grouping, Batching & Throttling
+
+* **`group_by`** – labels used to group alerts (same group = one notification)
+* **`group_wait`** – time to wait before sending the first notification of a new group (default: 30s)
+* **`group_interval`** – minimum interval between updates for an active group (default: 5m)
+* **`repeat_interval`** – minimum time before repeating a notification for the same alert (default: 1h or custom)
+
+These reduce noise and allow intelligent notification batching.
+
+---
+
+### Silencing Alerts
+
+Temporarily mute alerts by matchers. Useful during maintenance.
+
+Add silence:
+
+```bash
+amtool silence add alertname=HighCPUUsage --duration=1h --comment="Maintenance" --author="admin"
+```
+
+List active silences:
+
+```bash
+amtool silence list
+```
+
+Expire silence:
+
+```bash
+amtool silence expire <silence_id>
+```
+
+Web UI for silences:  
+`http://<alertmanager-host>:9093/#/silences`
+
+---
+
+### Notification Templates
+
+Custom formatting using Go templating:
+
+```yaml
+text: |
+  Alert: {{ .CommonLabels.alertname }}
+  Severity: {{ .CommonLabels.severity }}
+  Description: {{ .CommonAnnotations.description }}
+```
+
+Common template variables:
+- `.GroupLabels` – Contains the group labels of the notification.
+- `.CommonLabels` – Labels that are common across all alerts in the notification.
+- `.CommonAnnotations` – Similar to CommonLabels, but for annotations.
+- `.ExternalURL` – URL of this Alertmanager.
+- `.Status` – Will be set to firing if at least one alert in the notification is firing, if all are resolved then it will be set to resolved.
+- `.Receiver` – name of the receiver
+- `.Alerts` – List of all the alerts in the notification :-  
+      - `Labels` – labels for the alert .
+      - `Annotations` – annotation for the alert .
+      - `status` – firing|resolved.
+      - `StartsAt–` When the alert started firing .
+      - `EndsAt–` When the alert has stopped firing.
+
+---
+
+### Connecting Prometheus to Alertmanager
+
+```yaml
+# prometheus.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'localhost:9093'
+```
+
+Prometheus sends alerts to Alertmanager at `localhost:9093`.
+
+---
+
+### Web Interfaces
+
+* Prometheus Alerts: `http://<prometheus-host>:9090/alerts`
+* Alertmanager: `http://<alertmanager-host>:9093`
+* Silences: `http://<alertmanager-host>:9093/#/silences`
